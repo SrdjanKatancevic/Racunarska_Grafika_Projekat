@@ -26,6 +26,7 @@ void processInput(GLFWwindow *window);
 
 void key_callback(GLFWwindow *window, int key, int scancode, int action, int mods);
 
+unsigned int loadTexture(const char *path);
 // settings
 const unsigned int SCR_WIDTH = 800;
 const unsigned int SCR_HEIGHT = 600;
@@ -52,15 +53,15 @@ struct PointLight {
 };
 
 struct ProgramState {
+    Camera camera;
     glm::vec3 clearColor = glm::vec3(0);
     bool ImGuiEnabled = false;
-    Camera camera;
     bool CameraMouseMovementUpdateEnabled = true;
     glm::vec3 backpackPosition = glm::vec3(0.0f);
     float backpackScale = 1.0f;
     PointLight pointLight;
     ProgramState()
-            : camera(glm::vec3(0.0f, 0.0f, 3.0f)) {}
+            : camera(glm::vec3(0.0f, 0.0f, -3.0f)) {}
 
     void SaveToFile(std::string filename);
 
@@ -100,6 +101,8 @@ void ProgramState::LoadFromFile(std::string filename) {
 ProgramState *programState;
 
 void DrawImGui(ProgramState *programState);
+
+glm::vec3 lightPos(1.2f, 1.0f, 2.0f);
 
 int main() {
     // glfw: initialize and configure
@@ -161,12 +164,12 @@ int main() {
 
     // build and compile shaders
     // -------------------------
-    Shader ourShader("resources/shaders/2.model_lighting.vs", "resources/shaders/2.model_lighting.fs");
+    //Shader ourShader("resources/shaders/2.model_lighting.vs", "resources/shaders/2.model_lighting.fs");
 
     // load models
     // -----------
-    Model ourModel("resources/objects/backpack/backpack.obj");
-    ourModel.SetShaderTextureNamePrefix("material.");
+    //Model ourModel("resources/objects/backpack/backpack.obj");
+    //ourModel.SetShaderTextureNamePrefix("material.");
 
     PointLight& pointLight = programState->pointLight;
     pointLight.position = glm::vec3(4.0f, 4.0, 0.0);
@@ -175,13 +178,179 @@ int main() {
     pointLight.specular = glm::vec3(1.0, 1.0, 1.0);
 
     pointLight.constant = 1.0f;
-    pointLight.linear = 0.09f;
-    pointLight.quadratic = 0.032f;
+    pointLight.linear = 0.2f;
+    pointLight.quadratic = 0.05f;
+
+    Shader lightingShader("4.1.lighting_maps.vs", "4.1.lighting_maps.fs");
+    Shader lightCubeShader("4.1.light_cube.vs", "4.1.light_cube.fs");
+
+    // set up vertex data (and buffer(s)) and configure vertex attributes
+    // ------------------------------------------------------------------
+    float vertices1[] = {
+            // positions          // normals           // texture coords
+            -10.0f,  10.0f,  10.0f, -1.0f,  0.0f,  0.0f,  1.0f,  0.0f,
+            -10.0f,  10.0f, -10.0f, -1.0f,  0.0f,  0.0f,  1.0f,  1.0f,
+            -10.0f, -10.0f, -10.0f, -1.0f,  0.0f,  0.0f,  0.0f,  1.0f,
+            -10.0f, -10.0f, -10.0f, -1.0f,  0.0f,  0.0f,  0.0f,  1.0f,
+            -10.0f, -10.0f,  10.0f, -1.0f,  0.0f,  0.0f,  0.0f,  0.0f,
+            -10.0f,  10.0f,  10.0f, -1.0f,  0.0f,  0.0f,  1.0f,  0.0f,
+
+            10.0f,  10.0f,  10.0f,  1.0f,  0.0f,  0.0f,  1.0f,  0.0f,
+            10.0f,  10.0f, -10.0f,  1.0f,  0.0f,  0.0f,  1.0f,  1.0f,
+            10.0f, -10.0f, -10.0f,  1.0f,  0.0f,  0.0f,  0.0f,  1.0f,
+            10.0f, -10.0f, -10.0f,  1.0f,  0.0f,  0.0f,  0.0f,  1.0f,
+            10.0f, -10.0f,  10.0f,  1.0f,  0.0f,  0.0f,  0.0f,  0.0f,
+            10.0f,  10.0f,  10.0f,  1.0f,  0.0f,  0.0f,  1.0f,  0.0f,
+
+            -10.0f, -10.0f, -10.0f,  0.0f, -1.0f,  0.0f,  0.0f,  1.0f,
+            10.0f, -10.0f, -10.0f,  0.0f, -1.0f,  0.0f,  1.0f,  1.0f,
+            10.0f, -10.0f,  10.0f,  0.0f, -1.0f,  0.0f,  1.0f,  0.0f,
+            10.0f, -10.0f,  10.0f,  0.0f, -1.0f,  0.0f,  1.0f,  0.0f,
+            -10.0f, -10.0f,  10.0f,  0.0f, -1.0f,  0.0f,  0.0f,  0.0f,
+            -10.0f, -10.0f, -10.0f,  0.0f, -1.0f,  0.0f,  0.0f,  1.0f,
+
+            -10.0f,  10.0f, -10.0f,  0.0f,  1.0f,  0.0f,  0.0f,  1.0f,
+            10.0f,  10.0f, -10.0f,  0.0f,  1.0f,  0.0f,  1.0f,  1.0f,
+            10.0f,  10.0f,  10.0f,  0.0f,  1.0f,  0.0f,  1.0f,  0.0f,
+            10.0f,  10.0f,  10.0f,  0.0f,  1.0f,  0.0f,  1.0f,  0.0f,
+            -10.0f,  10.0f,  10.0f,  0.0f,  1.0f,  0.0f,  0.0f,  0.0f,
+            -10.0f,  10.0f, -10.0f,  0.0f,  1.0f,  0.0f,  0.0f,  1.0f
+    };
+
+    float vertices2[] = {               //pod
+            -10.0f, -10.0f, -10.0f,  0.0f,  0.0f, -1.0f,  0.0f,  0.0f,
+            10.0f, -10.0f, -10.0f,  0.0f,  0.0f, -1.0f,   4.0f,  0.0f,
+            10.0f,  10.0f, -10.0f,  0.0f,  0.0f, -1.0f,   4.0f,  4.0f,
+            10.0f,  10.0f, -10.0f,  0.0f,  0.0f, -1.0f,   4.0f,  4.0f,
+            -10.0f,  10.0f, -10.0f,  0.0f,  0.0f, -1.0f,  0.0f,  4.0f,
+            -10.0f, -10.0f, -10.0f,  0.0f,  0.0f, -1.0f,  0.0f,  0.0f,
+    };
+
+    float vertices3[] = {               //plafon
+            -10.0f, -10.0f,  10.0f,  0.0f,  0.0f,  1.0f,  0.0f,  0.0f,
+            10.0f, -10.0f,  10.0f,  0.0f,  0.0f,  1.0f,  1.0f,  0.0f,
+            10.0f,  10.0f,  10.0f,  0.0f,  0.0f,  1.0f,  1.0f,  1.0f,
+            10.0f,  10.0f,  10.0f,  0.0f,  0.0f,  1.0f,  1.0f,  1.0f,
+            -10.0f,  10.0f,  10.0f,  0.0f,  0.0f,  1.0f,  0.0f,  1.0f,
+            -10.0f, -10.0f,  10.0f,  0.0f,  0.0f,  1.0f,  0.0f,  0.0f,
+    };
+
+    float vertices4[] ={
+            -10.0f,  10.0f,  10.0f, -1.0f,  0.0f,  0.0f,  1.0f,  0.0f,
+            -10.0f,  10.0f, -10.0f, -1.0f,  0.0f,  0.0f,  1.0f,  1.0f,
+            -10.0f, -10.0f, -10.0f, -1.0f,  0.0f,  0.0f,  0.0f,  1.0f,
+            -10.0f, -10.0f, -10.0f, -1.0f,  0.0f,  0.0f,  0.0f,  1.0f,
+            -10.0f, -10.0f,  10.0f, -1.0f,  0.0f,  0.0f,  0.0f,  0.0f,
+            -10.0f,  10.0f,  10.0f, -1.0f,  0.0f,  0.0f,  1.0f,  0.0f,
+
+            10.0f,  10.0f,  10.0f,  1.0f,  0.0f,  0.0f,  1.0f,  0.0f,
+            10.0f,  10.0f, -10.0f,  1.0f,  0.0f,  0.0f,  1.0f,  1.0f,
+            10.0f, -10.0f, -10.0f,  1.0f,  0.0f,  0.0f,  0.0f,  1.0f,
+            10.0f, -10.0f, -10.0f,  1.0f,  0.0f,  0.0f,  0.0f,  1.0f,
+            10.0f, -10.0f,  10.0f,  1.0f,  0.0f,  0.0f,  0.0f,  0.0f,
+            10.0f,  10.0f,  10.0f,  1.0f,  0.0f,  0.0f,  1.0f,  0.0f,
+
+            -10.0f, -10.0f, -10.0f,  0.0f, -1.0f,  0.0f,  0.0f,  1.0f,
+            10.0f, -10.0f, -10.0f,  0.0f, -1.0f,  0.0f,  1.0f,  1.0f,
+            10.0f, -10.0f,  10.0f,  0.0f, -1.0f,  0.0f,  1.0f,  0.0f,
+            10.0f, -10.0f,  10.0f,  0.0f, -1.0f,  0.0f,  1.0f,  0.0f,
+            -10.0f, -10.0f,  10.0f,  0.0f, -1.0f,  0.0f,  0.0f,  0.0f,
+            -10.0f, -10.0f, -10.0f,  0.0f, -1.0f,  0.0f,  0.0f,  1.0f,
+
+            -10.0f,  10.0f, -10.0f,  0.0f,  1.0f,  0.0f,  0.0f,  1.0f,
+            10.0f,  10.0f, -10.0f,  0.0f,  1.0f,  0.0f,  1.0f,  1.0f,
+            10.0f,  10.0f,  10.0f,  0.0f,  1.0f,  0.0f,  1.0f,  0.0f,
+            10.0f,  10.0f,  10.0f,  0.0f,  1.0f,  0.0f,  1.0f,  0.0f,
+            -10.0f,  10.0f,  10.0f,  0.0f,  1.0f,  0.0f,  0.0f,  0.0f,
+            -10.0f,  10.0f, -10.0f,  0.0f,  1.0f,  0.0f,  0.0f,  1.0f,
+
+            -10.0f, -10.0f, -10.0f,  0.0f,  0.0f, -1.0f,  0.0f,  0.0f,
+            10.0f, -10.0f, -10.0f,  0.0f,  0.0f, -1.0f,  1.0f,  0.0f,
+            10.0f,  10.0f, -10.0f,  0.0f,  0.0f, -1.0f,  1.0f,  1.0f,
+            10.0f,  10.0f, -10.0f,  0.0f,  0.0f, -1.0f,  1.0f,  1.0f,
+            -10.0f,  10.0f, -10.0f,  0.0f,  0.0f, -1.0f,  0.0f,  1.0f,
+            -10.0f, -10.0f, -10.0f,  0.0f,  0.0f, -1.0f,  0.0f,  0.0f,
+
+            -10.0f, -10.0f,  10.0f,  0.0f,  0.0f,  1.0f,  0.0f,  0.0f,
+            10.0f, -10.0f,  10.0f,  0.0f,  0.0f,  1.0f,  1.0f,  0.0f,
+            10.0f,  10.0f,  10.0f,  0.0f,  0.0f,  1.0f,  1.0f,  1.0f,
+            10.0f,  10.0f,  10.0f,  0.0f,  0.0f,  1.0f,  1.0f,  1.0f,
+            -10.0f,  10.0f,  10.0f,  0.0f,  0.0f,  1.0f,  0.0f,  1.0f,
+            -10.0f, -10.0f,  10.0f,  0.0f,  0.0f,  1.0f,  0.0f,  0.0f,
+    };
 
 
+    // first, configure the cube's VAO (and VBO)
+    unsigned int VBO, zidoviVAO,podVAO,plafonVAO;
+    glGenVertexArrays(1, &zidoviVAO);
+    glGenBuffers(1, &VBO);
 
-    // draw in wireframe
-    //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+    glBindBuffer(GL_ARRAY_BUFFER, VBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices1), vertices1, GL_STATIC_DRAW);
+
+    glBindVertexArray(zidoviVAO);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3 * sizeof(float)));
+    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6 * sizeof(float)));
+    glEnableVertexAttribArray(2);
+
+    glGenVertexArrays(1, &podVAO);
+    glGenBuffers(1, &VBO);
+
+    glBindBuffer(GL_ARRAY_BUFFER, VBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices2), vertices2, GL_STATIC_DRAW);
+
+    glBindVertexArray(podVAO);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3 * sizeof(float)));
+    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6 * sizeof(float)));
+    glEnableVertexAttribArray(2);
+
+    glGenVertexArrays(1, &plafonVAO);
+    glGenBuffers(1, &VBO);
+
+    glBindBuffer(GL_ARRAY_BUFFER, VBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices3), vertices3, GL_STATIC_DRAW);
+
+    glBindVertexArray(plafonVAO);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3 * sizeof(float)));
+    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6 * sizeof(float)));
+    glEnableVertexAttribArray(2);
+
+    // second, configure the light's VAO (VBO stays the same; the vertices are the same for the light object which is also a 3D cube)
+    unsigned int lightCubeVAO,lightCubeVBO;
+    glGenVertexArrays(1, &lightCubeVAO);
+    glGenBuffers(1, &lightCubeVBO);
+
+    glBindBuffer(GL_ARRAY_BUFFER, lightCubeVBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices4), vertices4, GL_STATIC_DRAW);
+
+    glBindVertexArray(lightCubeVAO);
+
+    glBindBuffer(GL_ARRAY_BUFFER, lightCubeVBO);
+    // note that we update the lamp's position attribute's stride to reflect the updated buffer data
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
+    glEnableVertexAttribArray(0);
+
+    // load textures (we now use a utility function to keep the code more organized)
+    // -----------------------------------------------------------------------------
+    unsigned int diffuseMap1 = loadTexture(FileSystem::getPath("resources/textures/cigle2.jpeg").c_str());
+    unsigned int diffuseMap2 = loadTexture(FileSystem::getPath("resources/textures/pod.jpeg").c_str());
+    unsigned int diffuseMap3 = loadTexture(FileSystem::getPath("resources/textures/plafon.png").c_str());
+
+    // shader configuration
+    // --------------------
+    lightingShader.use();
+    lightingShader.setInt("material.diffuse", 0);
+
+
 
     // render loop
     // -----------
@@ -202,32 +371,69 @@ int main() {
         glClearColor(programState->clearColor.r, programState->clearColor.g, programState->clearColor.b, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        // don't forget to enable shader before setting uniforms
-        ourShader.use();
-        pointLight.position = glm::vec3(4.0 * cos(currentFrame), 4.0f, 4.0 * sin(currentFrame));
-        ourShader.setVec3("pointLight.position", pointLight.position);
-        ourShader.setVec3("pointLight.ambient", pointLight.ambient);
-        ourShader.setVec3("pointLight.diffuse", pointLight.diffuse);
-        ourShader.setVec3("pointLight.specular", pointLight.specular);
-        ourShader.setFloat("pointLight.constant", pointLight.constant);
-        ourShader.setFloat("pointLight.linear", pointLight.linear);
-        ourShader.setFloat("pointLight.quadratic", pointLight.quadratic);
-        ourShader.setVec3("viewPosition", programState->camera.Position);
-        ourShader.setFloat("material.shininess", 32.0f);
-        // view/projection transformations
-        glm::mat4 projection = glm::perspective(glm::radians(programState->camera.Zoom),
-                                                (float) SCR_WIDTH / (float) SCR_HEIGHT, 0.1f, 100.0f);
-        glm::mat4 view = programState->camera.GetViewMatrix();
-        ourShader.setMat4("projection", projection);
-        ourShader.setMat4("view", view);
+        lightingShader.use();
+        lightingShader.setVec3("light.position", lightPos);
+        lightingShader.setVec3("viewPos", programState->camera.Position);
 
-        // render the loaded model
+        // light properties
+        lightingShader.setVec3("light.ambient", 0.2f, 0.2f, 0.2f);
+        lightingShader.setVec3("light.diffuse", 0.5f, 0.5f, 0.5f);
+        lightingShader.setVec3("light.specular", 1.0f, 1.0f, 1.0f);
+
+        // material properties
+        lightingShader.setVec3("material.specular", 0.05f, 0.05f, 0.05f);
+        lightingShader.setFloat("material.shininess", 64.0f);
+
+
+
+        // view/projection transformations
+        glm::mat4 projection = glm::perspective(glm::radians(programState->camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
+        glm::mat4 view = programState->camera.GetViewMatrix();
+        lightingShader.setMat4("projection", projection);
+        lightingShader.setMat4("view", view);
+
+        // world transformation
         glm::mat4 model = glm::mat4(1.0f);
-        model = glm::translate(model,
-                               programState->backpackPosition); // translate it down so it's at the center of the scene
-        model = glm::scale(model, glm::vec3(programState->backpackScale));    // it's a bit too big for our scene, so scale it down
-        ourShader.setMat4("model", model);
-        ourModel.Draw(ourShader);
+        lightingShader.setMat4("model", model);
+
+        // bind diffuse map
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, diffuseMap1);
+
+
+        // render the cube
+        glBindVertexArray(zidoviVAO);
+        glDrawArrays(GL_TRIANGLES, 0, 24);
+
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, diffuseMap2);
+
+
+        // render the cube
+        glBindVertexArray(podVAO);
+        glDrawArrays(GL_TRIANGLES, 0, 6);
+
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, diffuseMap3);
+
+        glBindVertexArray(plafonVAO);
+        glDrawArrays(GL_TRIANGLES, 0, 6);
+
+
+
+
+        // also draw the lamp object
+        lightCubeShader.use();
+        lightCubeShader.setMat4("projection", projection);
+        lightCubeShader.setMat4("view", view);
+        model = glm::mat4(1.0f);
+        model = glm::translate(model, lightPos);
+        model = glm::scale(model, glm::vec3(0.01f)); // a smaller cube
+        lightCubeShader.setMat4("model", model);
+
+        glBindVertexArray(lightCubeVAO);
+        glDrawArrays(GL_TRIANGLES, 0, 36);
+
 
         if (programState->ImGuiEnabled)
             DrawImGui(programState);
@@ -345,4 +551,41 @@ void key_callback(GLFWwindow *window, int key, int scancode, int action, int mod
             glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
         }
     }
+}
+
+unsigned int loadTexture(char const * path)
+{
+    unsigned int textureID;
+    glGenTextures(1, &textureID);
+
+    int width, height, nrComponents;
+    unsigned char *data = stbi_load(path, &width, &height, &nrComponents, 0);
+    if (data)
+    {
+        GLenum format;
+        if (nrComponents == 1)
+            format = GL_RED;
+        else if (nrComponents == 3)
+            format = GL_RGB;
+        else if (nrComponents == 4)
+            format = GL_RGBA;
+
+        glBindTexture(GL_TEXTURE_2D, textureID);
+        glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, format, GL_UNSIGNED_BYTE, data);
+        glGenerateMipmap(GL_TEXTURE_2D);
+
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+        stbi_image_free(data);
+    }
+    else
+    {
+        std::cout << "Texture failed to load at path: " << path << std::endl;
+        stbi_image_free(data);
+    }
+
+    return textureID;
 }
