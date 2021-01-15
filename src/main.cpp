@@ -15,6 +15,7 @@
 #include <learnopengl/model.h>
 
 #include <iostream>
+#include <math.h>
 
 void framebuffer_size_callback(GLFWwindow *window, int width, int height);
 
@@ -140,7 +141,8 @@ int main() {
     }
 
     // tell stb_image.h to flip loaded texture's on the y-axis (before loading model).
-    stbi_set_flip_vertically_on_load(true);
+    //ovo kad zakomentarisemo vis enam ne flipje teksturu
+    //stbi_set_flip_vertically_on_load(true);
 
     programState = new ProgramState;
     programState->LoadFromFile("resources/program_state.txt");
@@ -358,8 +360,15 @@ int main() {
     lightingShader.use();
     lightingShader.setInt("material.diffuse", 0);
 
-
-
+    //model
+    //Model vozicModel(FileSystem::getPath("resources/objects/vozic/steam-train.obj"));
+    Model vagon1Model(FileSystem::getPath("resources/objects/vagoni/train-cart.obj"));
+    Model vagon2Model(FileSystem::getPath("resources/objects/vagoni/train-cart.obj"));
+    Model stoModel(FileSystem::getPath("resources/objects/sto1/wooden-coffe-table.obj"));
+    //Shader vozicShader("vozic.vs","vozic.fs");
+    Shader vagonShader("vagon.vs","vagon.fs");
+    Shader vagon2Shader("vagon.vs","vagon.fs");
+    Shader stoShader("svetlo.vs","svetlo.fs");
     // render loop
     // -----------
     while (!glfwWindowShouldClose(window)) {
@@ -384,9 +393,9 @@ int main() {
         lightingShader.setVec3("viewPos", programState->camera.Position);
 
         // light properties
-        lightingShader.setVec3("light.ambient", 0.25f, 0.25f, 0.25f);
-        lightingShader.setVec3("light.diffuse", 0.5f, 0.5f, 0.5f);
-        lightingShader.setVec3("light.specular", 1.0f, 1.0f, 1.0f);
+        lightingShader.setVec3("light.ambient", 0.0f, 0.0f, 0.0f);
+        lightingShader.setVec3("light.diffuse", 0.0f, 0.0f, 0.0f);
+        lightingShader.setVec3("light.specular", 0.0f, 0.0f, 0.0f);
 
         // material properties
 
@@ -400,11 +409,64 @@ int main() {
         lightingShader.setMat4("view", view);
 
         // world transformation
+        // render the loaded model
+
+
+
+
+        //vozicShader.use();
+        //glm::mat4 modelvozic = glm::mat4(1.0f);
+        //modelvozic = glm::scale(modelvozic,glm::vec3(0.1f));
+        //vozicShader.setMat4("model",modelvozic);
+        //vozicShader.setMat4("projection", projection);
+        //vozicShader.setMat4("view", view);
+        //vozicModel.Draw(vozicShader);
+        stoShader.use();
+        glm::mat4 modelSto = glm::mat4(1.0f);
+        modelSto = glm::scale(modelSto,glm::vec3(2.0f));
+        stoShader.setMat4("model",modelSto);
+        stoShader.setMat4("projection", projection);
+        stoShader.setMat4("view", view);
+        stoModel.Draw(stoShader);
+
+
+
+        vagonShader.use();
+        glm::mat4 modelvagon = glm::mat4(1.0f);
+        modelvagon = glm::rotate(modelvagon,(float)glfwGetTime(),glm::vec3(0.0f,1.0f,0.0f));
+        modelvagon = glm::translate(modelvagon,glm::vec3(3.0f,0.0f,0.0f));
+        modelvagon = glm::scale(modelvagon,glm::vec3(0.05f));
+
+        vagonShader.setMat4("model",modelvagon);
+        vagonShader.setMat4("projection", projection);
+        vagonShader.setMat4("view", view);
+        vagon1Model.Draw(vagonShader);
+
+        vagonShader.use();
+        modelvagon = glm::mat4(1.0f);
+        modelvagon = glm::rotate(modelvagon,glm::radians(50.0f),glm::vec3(0.0f,1.0f,0.0f));
+        modelvagon = glm::rotate(modelvagon,(float)glfwGetTime(),glm::vec3(0.0f,1.0f,0.0f));
+        modelvagon = glm::translate(modelvagon,glm::vec3(3.0f,0.0f,0.0f));
+        modelvagon = glm::scale(modelvagon,glm::vec3(0.05f));
+
+
+        vagonShader.setMat4("model",modelvagon);
+        vagonShader.setMat4("projection", projection);
+        vagonShader.setMat4("view", view);
+        vagon1Model.Draw(vagonShader);
+/*
+        vagon2Shader.use();
+        glm::mat4 modelvagon2 = glm::mat4(1.0f);
+        //modelvagon2 = glm::translate(modelvagon2,glm::vec3(5.0f));
+        modelvagon2 = glm::scale(modelvagon2,glm::vec3(0.2f));
+        vagon2Shader.setMat4("model",modelvagon2);
+        vagon2Shader.setMat4("projection", projection);
+        vagon2Shader.setMat4("view", view);
+        vagon2Model.Draw(vagon2Shader);
+*/
+        // bind diffuse map
         glm::mat4 model = glm::mat4(1.0f);
         lightingShader.setMat4("model", model);
-
-        // bind diffuse map
-
         lightingShader.setVec3("material.specular", 0.05f, 0.05f, 0.05f);
         lightingShader.setFloat("material.shininess", 8.0f);
 
@@ -433,8 +495,6 @@ int main() {
 
         glBindVertexArray(plafonVAO);
         glDrawArrays(GL_TRIANGLES, 0, 6);
-
-
 
 
         // also draw the lamp object
