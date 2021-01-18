@@ -119,7 +119,7 @@ int main() {
 
     // glfw window creation
     // --------------------
-    GLFWwindow *window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "LearnOpenGL", NULL, NULL);
+    GLFWwindow *window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "Grafika Projekat", NULL, NULL);
     if (window == NULL) {
         std::cout << "Failed to create GLFW window" << std::endl;
         glfwTerminate();
@@ -185,6 +185,7 @@ int main() {
 
     Shader lightingShader("4.1.lighting_maps.vs", "4.1.lighting_maps.fs");
     Shader lightCubeShader("4.1.light_cube.vs", "4.1.light_cube.fs");
+    Shader slikaShader("slika.vs", "slika.fs");
 
     // set up vertex data (and buffer(s)) and configure vertex attributes
     // ------------------------------------------------------------------
@@ -289,8 +290,45 @@ int main() {
             -0.5f,7.0f,  0.5f,  0.0f,  0.0f,  1.0f,  0.0f,  0.0f,
     };
 
+    float vertices[] = {
+            -9.8f, 8.0f, 3.0f, 1.0f, 0.0f, 0.0f, 1.0f, 0.0f,  // top right
+            -9.8f, 5.0f, 3.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f, // bottom right
+            -9.8f, 5.0f, -3.0f, 1.0f, 0.0f, 0.0f, 0.0f,1.0f,  // bottom left
+            -9.8f, 8.0f, -3.0f, 1.0f, 0.0f, 0.0f, 0.0f,0.0f,   // top left
+    };
+    unsigned int indices[] = {  // note that we start from 0!
+            0, 1, 3,  // first Triangle
+            1, 2, 3   // second Triangle
+    };
+    unsigned int slikaVBO, VAO, EBO;
+    glGenVertexArrays(1, &VAO);
+    glGenBuffers(1, &slikaVBO);
+    glGenBuffers(1, &EBO);
+    // bind the Vertex Array Object first, then bind and set vertex buffer(s), and then configure vertex attributes(s).
+    glBindVertexArray(VAO);
 
+    glBindBuffer(GL_ARRAY_BUFFER, slikaVBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
 
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
+
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3 * sizeof(float)));
+    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6 * sizeof(float)));
+    glEnableVertexAttribArray(2);
+
+    // note that this is allowed, the call to glVertexAttribPointer registered VBO as the vertex attribute's bound vertex buffer object so afterwards we can safely unbind
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+    // remember: do NOT unbind the EBO while a VAO is active as the bound element buffer object IS stored in the VAO; keep the EBO bound.
+    //glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+
+    // You can unbind the VAO afterwards so other VAO calls won't accidentally modify this VAO, but this rarely happens. Modifying other
+    // VAOs requires a call to glBindVertexArray anyways so we generally don't unbind VAOs (nor VBOs) when it's not directly necessary.
+    glBindVertexArray(0);
 
     // first, configure the cube's VAO (and VBO)
     unsigned int VBO, zidoviVAO,podVAO,plafonVAO;
@@ -356,9 +394,14 @@ int main() {
     unsigned int diffuseMap1 = loadTexture(FileSystem::getPath("resources/textures/cigle2.jpeg").c_str());
     unsigned int diffuseMap2 = loadTexture(FileSystem::getPath("resources/textures/pod.jpeg").c_str());
     unsigned int diffuseMap3 = loadTexture(FileSystem::getPath("resources/textures/plafon.png").c_str());
+    unsigned int diffuseMap4 = loadTexture(FileSystem::getPath("resources/textures/slika.jpeg").c_str());
+    unsigned int specularMap = loadTexture(FileSystem::getPath("resources/textures/boje.jpeg").c_str());
 
     // shader configuration
     // --------------------
+    slikaShader.use();
+    slikaShader.setInt("material.diffuse",0);
+    slikaShader.setInt("material.specular",1);
     lightingShader.use();
     lightingShader.setInt("material.diffuse", 0);
 
@@ -390,14 +433,42 @@ int main() {
         // ------
         glClearColor(programState->clearColor.r, programState->clearColor.g, programState->clearColor.b, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        glm::mat4 model = glm::mat4(1.0f);
+        glm::mat4 projection = glm::perspective(glm::radians(programState->camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
+        glm::mat4 view = programState->camera.GetViewMatrix();
+
+        slikaShader.use();
+        slikaShader.setMat4("projection", projection);
+        slikaShader.setMat4("view", view);
+        slikaShader.setMat4("model", model);
+
+        slikaShader.setVec3("light.position", lightPos);
+        lightingShader.setVec3("viewPos", programState->camera.Position);
+
+
+        slikaShader.setVec3("light.ambient", 0.2f, 0.2f, 0.2f);
+        slikaShader.setVec3("light.diffuse", 0.6f, 0.6f, 0.6f);
+        slikaShader.setVec3("light.specular",0.6f,0.6f,0.6f);
+        slikaShader.setFloat("material.shininess", 8.0f);
+        slikaShader.setFloat("light.constant",pointLight.constant);
+        slikaShader.setFloat("light.linear",pointLight.linear);
+        slikaShader.setFloat("light.quadratic",pointLight.quadratic);
+
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, diffuseMap4);
+
+        glActiveTexture(GL_TEXTURE1);
+        glBindTexture(GL_TEXTURE_2D, specularMap);
+
+        glBindVertexArray(VAO); // seeing as we only have a single VAO there's no need to bind it every time, but we'll do so to keep things a bit more organized
+        //glDrawArrays(GL_TRIANGLES, 0, 6);
+        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 
         lightingShader.use();
         lightingShader.setVec3("light.position", lightPos);
         lightingShader.setVec3("viewPos", programState->camera.Position);
 
         // view/projection transformations
-        glm::mat4 projection = glm::perspective(glm::radians(programState->camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
-        glm::mat4 view = programState->camera.GetViewMatrix();
         lightingShader.setMat4("projection", projection);
         lightingShader.setMat4("view", view);
 
@@ -410,7 +481,6 @@ int main() {
         lightingShader.setFloat("light.quadratic",pointLight.quadratic);
 
         // bind diffuse map
-        glm::mat4 model = glm::mat4(1.0f);
         lightingShader.setMat4("model", model);
         lightingShader.setVec3("material.specular", 0.05f, 0.05f, 0.05f);
         lightingShader.setFloat("material.shininess", 8.0f);
@@ -433,7 +503,7 @@ int main() {
         glDrawArrays(GL_TRIANGLES, 0, 6);
 
         lightingShader.setVec3("material.specular", 0.7f, 0.7f, 0.7f);
-        lightingShader.setVec3("light.diffuse", 0.7f, 0.7f, 0.7f);
+        //lightingShader.setVec3("light.diffuse", 0.7f, 0.7f, 0.7f);
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, diffuseMap2);
 
@@ -441,7 +511,6 @@ int main() {
         // render the cube
         glBindVertexArray(podVAO);
         glDrawArrays(GL_TRIANGLES, 0, 6);
-
 
         tenkShader.use();
         glm::mat4 modelTenk = glm::mat4(1.0f);
@@ -488,7 +557,6 @@ int main() {
 
         glBindVertexArray(lightCubeVAO);
         glDrawArrays(GL_TRIANGLES, 0, 36);
-
 
         if (programState->ImGuiEnabled)
             DrawImGui(programState);
