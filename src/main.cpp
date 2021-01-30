@@ -53,6 +53,22 @@ struct PointLight {
     float quadratic;
 };
 
+struct SpotLight{
+    glm::vec3 position;
+    glm::vec3 direction;
+
+    glm::vec3 ambient;
+    glm::vec3 diffuse;
+    glm::vec3 specular;
+
+    float cutOff;
+    float outerCutOff;
+
+    float constant;
+    float linear;
+    float quadratic;
+};
+
 struct ProgramState {
     Camera camera;
     glm::vec3 clearColor = glm::vec3(0);
@@ -104,6 +120,9 @@ ProgramState *programState;
 void DrawImGui(ProgramState *programState);
 
 glm::vec3 lightPos(1.2f, 1.0f, 2.0f);
+glm::vec3 lightSpotPos(0.0f,2.5f,-4.0f);
+
+bool isSpotlightActivated = false;
 
 int main() {
     // glfw: initialize and configure
@@ -166,7 +185,7 @@ int main() {
 
     // build and compile shaders
     // -------------------------
-    //Shader ourShader("resources/shaders/2.model_lighting.vs", "resources/shaders/2.model_lighting.fs");
+    //Shader ourShader("resources/shaders/object.vs", "resources/shaders/object.fs");
 
     // load models
     // -----------
@@ -183,8 +202,20 @@ int main() {
     pointLight.linear = 0.0035f;
     pointLight.quadratic = 0.001f;
 
-    Shader lightingShader("4.1.lighting_maps.vs", "4.1.lighting_maps.fs");
-    Shader lightCubeShader("4.1.light_cube.vs", "4.1.light_cube.fs");
+    SpotLight spotLight;
+    spotLight.position = glm::vec3(0.0f, 2.5f, -4.0f);
+    spotLight.ambient = glm::vec3(0.1f, 0.1f, 0.1f);
+    spotLight.diffuse = glm::vec3(0.6f, 0.6f, 0.6f);
+    spotLight.specular = glm::vec3(0.5f, 0.5f, 0.5f);
+    spotLight.direction = glm::vec3(0.0f,0.0f,-1.0f);
+    spotLight.constant = 1.0f;
+    spotLight.linear = 0.0035f;
+    spotLight.quadratic = 0.001f;
+    spotLight.cutOff = glm::cos(glm::radians(2.5f));
+    spotLight.outerCutOff = glm::cos(glm::radians(21.5f));
+
+    Shader lightingShader("soba.vs", "soba.fs");
+    Shader lightCubeShader("sijalica.vs", "sijalica.fs");
     Shader slikaShader("slika.vs", "slika.fs");
 
     // set up vertex data (and buffer(s)) and configure vertex attributes
@@ -392,6 +423,7 @@ int main() {
     // load textures (we now use a utility function to keep the code more organized)
     // -----------------------------------------------------------------------------
     unsigned int diffuseMap1 = loadTexture(FileSystem::getPath("resources/textures/cigle2.jpeg").c_str());
+    unsigned int specularMap1 = loadTexture(FileSystem::getPath("resources/textures/belo.png").c_str());
     unsigned int diffuseMap2 = loadTexture(FileSystem::getPath("resources/textures/pod.jpeg").c_str());
     unsigned int diffuseMap3 = loadTexture(FileSystem::getPath("resources/textures/plafon.png").c_str());
     unsigned int diffuseMap4 = loadTexture(FileSystem::getPath("resources/textures/slika.jpeg").c_str());
@@ -404,7 +436,7 @@ int main() {
     slikaShader.setInt("material.specular",1);
     lightingShader.use();
     lightingShader.setInt("material.diffuse", 0);
-
+    lightingShader.setInt("material.specular",1);
     //model
     //Model
     Model vagon1Model(FileSystem::getPath("resources/objects/vagoni/train-cart.obj"));
@@ -412,9 +444,7 @@ int main() {
     Model tenkModel(FileSystem::getPath("resources/objects/tenk/german-panzer-ww2-ausf-b.obj"));
 
 
-    Shader vagonShader("vagon.vs","vagon.fs");
-    Shader vagon2Shader("vagon.vs","vagon.fs");
-    Shader tenkShader("svetlo.vs", "svetlo.fs");
+    //Shader objectShader("soba.vs","soba.fs");
     // render loop
     // -----------
     while (!glfwWindowShouldClose(window)) {
@@ -454,6 +484,8 @@ int main() {
         slikaShader.setFloat("light.linear",pointLight.linear);
         slikaShader.setFloat("light.quadratic",pointLight.quadratic);
 
+
+
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, diffuseMap4);
 
@@ -466,6 +498,7 @@ int main() {
 
         lightingShader.use();
         lightingShader.setVec3("light.position", lightPos);
+        lightingShader.setVec3("material.diffuse2",spotLight.diffuse);
         lightingShader.setVec3("viewPos", programState->camera.Position);
 
         // view/projection transformations
@@ -480,60 +513,93 @@ int main() {
         lightingShader.setFloat("light.linear",pointLight.linear);
         lightingShader.setFloat("light.quadratic",pointLight.quadratic);
 
+
+
         // bind diffuse map
         lightingShader.setMat4("model", model);
-        lightingShader.setVec3("material.specular", 0.05f, 0.05f, 0.05f);
-        lightingShader.setFloat("material.shininess", 8.0f);
-
+        //lightingShader.setVec3("material.specular", 0.05f, 0.05f, 0.05f);
+        lightingShader.setFloat("material.shininess", 64.0f);
+        lightingShader.setVec3("light.specular",0.02f,0.02f,0.02f);
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, diffuseMap1);
 
+        glActiveTexture(GL_TEXTURE1);
+        glBindTexture(GL_TEXTURE_2D, specularMap1);
 
         // render the cube
         glBindVertexArray(zidoviVAO);
         glDrawArrays(GL_TRIANGLES, 0, 24);
 
 
-        lightingShader.setVec3("material.specular", 0.15f, 0.15f, 0.15f);
+        //lightingShader.setVec3("material.specular", 0.15f, 0.15f, 0.15f);
         //lightingShader.setVec3("light.diffuse", 0.5f, 0.5f, 0.5f);
+        lightingShader.setVec3("light.specular",0.2f,0.2f,0.2f);
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, diffuseMap3);
+        glActiveTexture(GL_TEXTURE1);
+        glBindTexture(GL_TEXTURE_2D, specularMap1);
 
         glBindVertexArray(plafonVAO);
         glDrawArrays(GL_TRIANGLES, 0, 6);
 
-        lightingShader.setVec3("material.specular", 0.7f, 0.7f, 0.7f);
+        //lightingShader.setVec3("material.specular", 0.7f, 0.7f, 0.7f);
         //lightingShader.setVec3("light.diffuse", 0.7f, 0.7f, 0.7f);
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, diffuseMap2);
 
+        glActiveTexture(GL_TEXTURE1);
+        glBindTexture(GL_TEXTURE_2D, specularMap1);
 
+        lightingShader.setVec3("light.specular",0.6f,0.6f,0.6f);
         // render the cube
         glBindVertexArray(podVAO);
         glDrawArrays(GL_TRIANGLES, 0, 6);
 
-        tenkShader.use();
+        lightingShader.setVec3("lightSpot.position", programState->camera.Position);
+
+        if(isSpotlightActivated) {
+            lightingShader.setVec3("lightSpot.ambient", 0.0f, 0.0f, 0.0f);
+            lightingShader.setVec3("lightSpot.diffuse", 1.0f, 1.0f, 1.0f);
+            lightingShader.setVec3("lightSpot.specular", 1.0f, 1.0f, 1.0f);
+        }else{
+            lightingShader.setVec3("lightSpot.ambient", 0.0f, 0.0f, 0.0f);
+            lightingShader.setVec3("lightSpot.diffuse", 0.0f, 0.0f, 0.0f);
+            lightingShader.setVec3("lightSpot.specular", 0.0f, 0.0f, 0.0f);
+        }
+        lightingShader.setFloat("lightSpot.cutOff",spotLight.cutOff);
+        lightingShader.setFloat("lightSpot.outerCutOff",spotLight.outerCutOff);
+        lightingShader.setVec3("lightSpot.direction", programState->camera.Front);
+
+        lightingShader.setFloat("lightSpot.constant",pointLight.constant);
+        lightingShader.setFloat("lightSpot.linear",pointLight.linear);
+        lightingShader.setFloat("lightSpot.quadratic",pointLight.quadratic);
+
+        lightingShader.setFloat("material.shininess", 64.0f);
+
+
+        //lightingShader.use();
+        lightingShader.setVec3("light.ambient",glm::vec3(1.0f,1.0f,1.0f));
         glm::mat4 modelTenk = glm::mat4(1.0f);
         modelTenk = glm::scale(modelTenk, glm::vec3(1.5f));
-        tenkShader.setMat4("model", modelTenk);
-        tenkShader.setMat4("projection", projection);
-        tenkShader.setMat4("view", view);
-        tenkModel.Draw(tenkShader);
+        lightingShader.setMat4("model", modelTenk);
+        lightingShader.setMat4("projection", projection);
+        lightingShader.setMat4("view", view);
+        tenkModel.Draw(lightingShader);
 
 
 
-        vagonShader.use();
+        //lightingShader.use();
         glm::mat4 modelvagon = glm::mat4(1.0f);
         modelvagon = glm::rotate(modelvagon,(float)glfwGetTime(),glm::vec3(0.0f,1.0f,0.0f));
         modelvagon = glm::translate(modelvagon,glm::vec3(8.0f,0.0f,0.0f));
         modelvagon = glm::scale(modelvagon,glm::vec3(0.1f));
 
-        vagonShader.setMat4("model",modelvagon);
-        vagonShader.setMat4("projection", projection);
-        vagonShader.setMat4("view", view);
-        vagon1Model.Draw(vagonShader);
+        lightingShader.setMat4("model",modelvagon);
+        lightingShader.setMat4("projection", projection);
+        lightingShader.setMat4("view", view);
+        vagon1Model.Draw(lightingShader);
 
-        vagonShader.use();
+        //lightingShader.use();
         modelvagon = glm::mat4(1.0f);
         modelvagon = glm::rotate(modelvagon,glm::radians(37.0f),glm::vec3(0.0f,1.0f,0.0f));
         modelvagon = glm::rotate(modelvagon,(float)glfwGetTime(),glm::vec3(0.0f,1.0f,0.0f));
@@ -541,10 +607,10 @@ int main() {
         modelvagon = glm::scale(modelvagon,glm::vec3(0.1f));
 
 
-        vagonShader.setMat4("model",modelvagon);
-        vagonShader.setMat4("projection", projection);
-        vagonShader.setMat4("view", view);
-        vagon1Model.Draw(vagonShader);
+        lightingShader.setMat4("model",modelvagon);
+        lightingShader.setMat4("projection", projection);
+        lightingShader.setMat4("view", view);
+        vagon1Model.Draw(lightingShader);
 
         // also draw the lamp object
         lightCubeShader.use();
@@ -665,6 +731,10 @@ void DrawImGui(ProgramState *programState) {
 }
 
 void key_callback(GLFWwindow *window, int key, int scancode, int action, int mods) {
+    if (key == GLFW_KEY_L && action == GLFW_PRESS) {
+        isSpotlightActivated = !isSpotlightActivated;
+    }
+
     if (key == GLFW_KEY_F1 && action == GLFW_PRESS) {
         programState->ImGuiEnabled = !programState->ImGuiEnabled;
         if (programState->ImGuiEnabled) {
