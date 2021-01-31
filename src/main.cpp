@@ -119,7 +119,7 @@ ProgramState *programState;
 
 void DrawImGui(ProgramState *programState);
 
-glm::vec3 lightPos(1.2f, 1.0f, 2.0f);
+glm::vec3 lightPos(0.0f, 8.0f, 0.0f);
 glm::vec3 lightSpotPos(0.0f,2.5f,-4.0f);
 
 bool isSpotlightActivated = false;
@@ -183,14 +183,6 @@ int main() {
     // -----------------------------
     glEnable(GL_DEPTH_TEST);
 
-    // build and compile shaders
-    // -------------------------
-    //Shader ourShader("resources/shaders/object.vs", "resources/shaders/object.fs");
-
-    // load models
-    // -----------
-    //Model ourModel("resources/objects/backpack/backpack.obj");
-    //ourModel.SetShaderTextureNamePrefix("material.");
 
     PointLight& pointLight = programState->pointLight;
     pointLight.position = glm::vec3(0.0f, 0.0f, 0.0f);
@@ -220,7 +212,20 @@ int main() {
 
     // set up vertex data (and buffer(s)) and configure vertex attributes
     // ------------------------------------------------------------------
+    float vertices[] = {
+            // slika
+            -9.99f, 8.0f, 3.0f, 1.0f, 0.0f, 0.0f, 1.0f, 0.0f,  // top right
+            -9.99f, 5.0f, 3.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f, // bottom right
+            -9.99f, 5.0f, -3.0f, 1.0f, 0.0f, 0.0f, 0.0f,1.0f,  // bottom left
+            -9.99f, 8.0f, -3.0f, 1.0f, 0.0f, 0.0f, 0.0f,0.0f,   // top left
+    };
+    unsigned int indices[] = {  // note that we start from 0!
+            0, 3, 1,  // first Triangle
+            1, 3, 2   // second Triangle
+    };
+
     float vertices1[] = {
+            // zidovi
             // positions          // normals           // texture coords
             -10.0f,  10.0f,  10.0f, 1.0f,  0.0f,  0.0f,  1.0f,  1.0f,
             -10.0f,  10.0f, -10.0f, 1.0f,  0.0f,  0.0f,  0.0f,  1.0f,
@@ -230,13 +235,11 @@ int main() {
             -10.0f,  10.0f,  10.0f, 1.0f,  0.0f,  0.0f,  1.0f,  1.0f,
 
             10.0f,  10.0f,  10.0f,  -1.0f,  0.0f,  0.0f,  1.0f,  1.0f,
+            10.0f, 0.0f, -10.0f,  -1.0f,  0.0f,  0.0f,  0.0f,  0.0f,
             10.0f,  10.0f, -10.0f,  -1.0f,  0.0f,  0.0f,  0.0f,  1.0f,
             10.0f, 0.0f, -10.0f,  -1.0f,  0.0f,  0.0f,  0.0f,  0.0f,
-            10.0f, 0.0f, -10.0f,  -1.0f,  0.0f,  0.0f,  0.0f,  0.0f,
-            10.0f, 0.0f,  10.0f,  -1.0f,  0.0f,  0.0f,  1.0f,  0.0f,
             10.0f,  10.0f,  10.0f,  -1.0f,  0.0f,  0.0f,  1.0f,  1.0f,
-
-
+            10.0f, 0.0f,  10.0f,  -1.0f,  0.0f,  0.0f,  1.0f,  0.0f,
 
             -10.0f, 0.0f,  10.0f,  0.0f,  0.0f,  -1.0f,  0.0f,  0.0f,
             10.0f, 0.0f,  10.0f,  0.0f,  0.0f,  -1.0f,  1.0f,  0.0f,
@@ -245,14 +248,13 @@ int main() {
             -10.0f,  10.0f,  10.0f,  0.0f,  0.0f,  -1.0f,  0.0f,  1.0f,
             -10.0f, 0.0f,  10.0f,  0.0f,  0.0f,  -1.0f,  0.0f,  0.0f,
 
-
-
             -10.0f, 0.0f, -10.0f,  0.0f,  0.0f, 1.0f,  0.0f,  0.0f,
+             10.0f,  10.0f, -10.0f,  0.0f,  0.0f, 1.0f,   1.0f,  1.0f,
             10.0f, 0.0f, -10.0f,  0.0f,  0.0f, 1.0f,   1.0f,  0.0f,
             10.0f,  10.0f, -10.0f,  0.0f,  0.0f, 1.0f,   1.0f,  1.0f,
-            10.0f,  10.0f, -10.0f,  0.0f,  0.0f, 1.0f,   1.0f,  1.0f,
-            -10.0f,  10.0f, -10.0f,  0.0f,  0.0f, 1.0f,  0.0f,  1.0f,
             -10.0f, 0.0f, -10.0f,  0.0f,  0.0f, 1.0f,  0.0f,  0.0f,
+            -10.0f,  10.0f, -10.0f,  0.0f,  0.0f, 1.0f,  0.0f,  1.0f,
+
     };
 
     float vertices2[] = {               //pod
@@ -268,69 +270,60 @@ int main() {
 
     float vertices3[] = {               //plafon
             -10.0f,  10.0f, -10.0f,  0.0f,  -1.0f,  0.0f,  0.0f,  1.0f,
+            10.0f,  10.0f,  10.0f,  0.0f,  -1.0f,  0.0f,  1.0f,  0.0f,
             10.0f,  10.0f, -10.0f,  0.0f,  -1.0f,  0.0f,  1.0f,  1.0f,
             10.0f,  10.0f,  10.0f,  0.0f,  -1.0f,  0.0f,  1.0f,  0.0f,
-            10.0f,  10.0f,  10.0f,  0.0f,  -1.0f,  0.0f,  1.0f,  0.0f,
-            -10.0f,  10.0f,  10.0f,  0.0f,  -1.0f,  0.0f,  0.0f,  0.0f,
-            -10.0f,  10.0f, -10.0f,  0.0f,  -1.0f,  0.0f,  0.0f,  1.0f
-
+            -10.0f,  10.0f, -10.0f,  0.0f,  -1.0f,  0.0f,  0.0f,  1.0f,
+            -10.0f,  10.0f,  10.0f,  0.0f,  -1.0f,  0.0f,  0.0f,  0.0f
 
     };
 
-    float vertices4[] ={
-            -0.5f, 8.0f,  0.5f, -1.0f,  0.0f,  0.0f,  1.0f,  0.0f,
-            -0.5f, 8.0f, -0.5f, -1.0f,  0.0f,  0.0f,  1.0f,  1.0f,
-            -0.5f,7.0f, -0.5f, -1.0f,  0.0f,  0.0f,  0.0f,  1.0f,
-            -0.5f,7.0f, -0.5f, -1.0f,  0.0f,  0.0f,  0.0f,  1.0f,
-            -0.5f,7.0f,  0.5f, -1.0f,  0.0f,  0.0f,  0.0f,  0.0f,
-            -0.5f, 8.0f,  0.5f, -1.0f,  0.0f,  0.0f,  1.0f,  0.0f,
-
-            0.5f, 8.0f,  0.5f,  1.0f,  0.0f,  0.0f,  1.0f,  0.0f,
-            0.5f, 8.0f, -0.5f,  1.0f,  0.0f,  0.0f,  1.0f,  1.0f,
-            0.5f,7.0f, -0.5f,  1.0f,  0.0f,  0.0f,  0.0f,  1.0f,
-            0.5f,7.0f, -0.5f,  1.0f,  0.0f,  0.0f,  0.0f,  1.0f,
-            0.5f,7.0f,  0.5f,  1.0f,  0.0f,  0.0f,  0.0f,  0.0f,
-            0.5f, 8.0f,  0.5f,  1.0f,  0.0f,  0.0f,  1.0f,  0.0f,
-
-            -0.5f,7.0f, -0.5f,  0.0f, -1.0f,  0.0f,  0.0f,  1.0f,
-            0.5f,7.0f, -0.5f,  0.0f, -1.0f,  0.0f,  1.0f,  1.0f,
-            0.5f,7.0f,  0.5f,  0.0f, -1.0f,  0.0f,  1.0f,  0.0f,
-            0.5f,7.0f,  0.5f,  0.0f, -1.0f,  0.0f,  1.0f,  0.0f,
-            -0.5f,7.0f,  0.5f,  0.0f, -1.0f,  0.0f,  0.0f,  0.0f,
-            -0.5f,7.0f, -0.5f,  0.0f, -1.0f,  0.0f,  0.0f,  1.0f,
-
-            -0.5f, 8.0f, -0.5f,  0.0f,  1.0f,  0.0f,  0.0f,  1.0f,
-            0.5f, 8.0f, -0.5f,  0.0f,  1.0f,  0.0f,  1.0f,  1.0f,
-            0.5f, 8.0f,  0.5f,  0.0f,  1.0f,  0.0f,  1.0f,  0.0f,
-            0.5f, 8.0f,  0.5f,  0.0f,  1.0f,  0.0f,  1.0f,  0.0f,
-            -0.5f, 8.0f,  0.5f,  0.0f,  1.0f,  0.0f,  0.0f,  0.0f,
-            -0.5f, 8.0f, -0.5f,  0.0f,  1.0f,  0.0f,  0.0f,  1.0f,
-
-            -0.5f,7.0f, -0.5f,  0.0f,  0.0f, -1.0f,  0.0f,  0.0f,
-            0.5f,7.0f, -0.5f,  0.0f,  0.0f, -1.0f,  1.0f,  0.0f,
-            0.5f, 8.0f, -0.5f,  0.0f,  0.0f, -1.0f,  1.0f,  1.0f,
-            0.5f, 8.0f, -0.5f,  0.0f,  0.0f, -1.0f,  1.0f,  1.0f,
-            -0.5f, 8.0f, -0.5f,  0.0f,  0.0f, -1.0f,  0.0f,  1.0f,
-            -0.5f,7.0f, -0.5f,  0.0f,  0.0f, -1.0f,  0.0f,  0.0f,
-
-            -0.5f,7.0f,  0.5f,  0.0f,  0.0f,  1.0f,  0.0f,  0.0f,
-            0.5f,7.0f,  0.5f,  0.0f,  0.0f,  1.0f,  1.0f,  0.0f,
-            0.5f, 8.0f,  0.5f,  0.0f,  0.0f,  1.0f,  1.0f,  1.0f,
-            0.5f, 8.0f,  0.5f,  0.0f,  0.0f,  1.0f,  1.0f,  1.0f,
-            -0.5f, 8.0f,  0.5f,  0.0f,  0.0f,  1.0f,  0.0f,  1.0f,
-            -0.5f,7.0f,  0.5f,  0.0f,  0.0f,  1.0f,  0.0f,  0.0f,
+    float cubeVertices[] = {
+            // Back face
+            -0.5f, -0.5f, -0.5f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, // Bottom-left
+            0.5f, -0.5f, -0.5f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f, // bottom-right
+            0.5f,  0.5f, -0.5f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, // top-right
+            0.5f,  0.5f, -0.5f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, // top-right
+            -0.5f,  0.5f, -0.5f, 0.0f, 0.0f, 1.0f, 0.0f, 1.0f, // top-left
+            -0.5f, -0.5f, -0.5f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, // bottom-left
+            // Front face
+            -0.5f, -0.5f,  0.5f, 0.0f, 0.0f, -1.0f, 0.0f, 0.0f, // bottom-left
+            0.5f,  0.5f,  0.5f, 0.0f, 0.0f, -1.0f, 1.0f, 1.0f, // top-right
+            0.5f, -0.5f,  0.5f, 0.0f, 0.0f, -1.0f, 1.0f, 0.0f, // bottom-right
+            0.5f,  0.5f,  0.5f, 0.0f, 0.0f, -1.0f, 1.0f, 1.0f, // top-right
+            -0.5f, -0.5f,  0.5f, 0.0f, 0.0f, -1.0f, 0.0f, 0.0f, // bottom-left
+            -0.5f,  0.5f,  0.5f, 0.0f, 0.0f, -1.0f, 0.0f, 1.0f, // top-left
+            // Left face
+            -0.5f,  0.5f,  0.5f, 1.0f, 0.0f, 0.0f, 1.0f, 0.0f, // top-right
+            -0.5f, -0.5f, -0.5f, 1.0f, 0.0f, 0.0f, 0.0f, 1.0f, // bottom-left
+            -0.5f,  0.5f, -0.5f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f, // top-left
+            -0.5f, -0.5f, -0.5f, 1.0f, 0.0f, 0.0f, 0.0f, 1.0f, // bottom-left
+            -0.5f,  0.5f,  0.5f, 1.0f, 0.0f, 0.0f, 1.0f, 0.0f, // top-right
+            -0.5f, -0.5f,  0.5f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, // bottom-right
+            // Right face
+            0.5f,  0.5f,  0.5f, -1.0f, 0.0f, 0.0f, 1.0f, 0.0f, // top-left
+            0.5f,  0.5f, -0.5f, -1.0f, 0.0f, 0.0f, 1.0f, 1.0f, // top-right
+            0.5f, -0.5f, -0.5f, -1.0f, 0.0f, 0.0f, 0.0f, 1.0f, // bottom-right
+            0.5f, -0.5f, -0.5f, -1.0f, 0.0f, 0.0f, 0.0f, 1.0f, // bottom-right
+            0.5f, -0.5f,  0.5f, -1.0f, 0.0f, 0.0f, 0.0f, 0.0f, // bottom-left
+            0.5f,  0.5f,  0.5f, -1.0f, 0.0f, 0.0f, 1.0f, 0.0f, // top-left
+            // Bottom face
+            -0.5f, -0.5f, -0.5f, 0.0f, 1.0f, 0.0f, 0.0f, 1.0f, // top-right
+            0.5f, -0.5f,  0.5f, 0.0f, 1.0f, 0.0f, 1.0f, 0.0f, // bottom-left
+            0.5f, -0.5f, -0.5f, 0.0f, 1.0f, 0.0f, 1.0f, 1.0f, // top-left
+            0.5f, -0.5f,  0.5f, 0.0f, 1.0f, 0.0f, 1.0f, 0.0f, // bottom-left
+            -0.5f, -0.5f, -0.5f, 0.0f, 1.0f, 0.0f, 0.0f, 1.0f, // top-right
+            -0.5f, -0.5f,  0.5f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, // bottom-right
+            // Top face
+            -0.5f,  0.5f, -0.5f, 0.0f, -1.0f, 0.0f, 0.0f, 1.0f, // top-left
+            0.5f,  0.5f, -0.5f, 0.0f, -1.0f, 0.0f, 1.0f, 1.0f, // top-right
+            0.5f,  0.5f,  0.5f, 0.0f, -1.0f, 0.0f, 1.0f, 0.0f, // bottom-right
+            0.5f,  0.5f,  0.5f, 0.0f, -1.0f, 0.0f, 1.0f, 0.0f, // bottom-right
+            -0.5f,  0.5f,  0.5f, 0.0f, -1.0f, 0.0f, 0.0f, 0.0f, // bottom-left
+            -0.5f,  0.5f, -0.5f, 0.0f, -1.0f, 0.0f, 0.0f, 1.0f  // top-left
     };
 
-    float vertices[] = {
-            -9.8f, 8.0f, 3.0f, 1.0f, 0.0f, 0.0f, 1.0f, 0.0f,  // top right
-            -9.8f, 5.0f, 3.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f, // bottom right
-            -9.8f, 5.0f, -3.0f, 1.0f, 0.0f, 0.0f, 0.0f,1.0f,  // bottom left
-            -9.8f, 8.0f, -3.0f, 1.0f, 0.0f, 0.0f, 0.0f,0.0f,   // top left
-    };
-    unsigned int indices[] = {  // note that we start from 0!
-            0, 1, 3,  // first Triangle
-            1, 2, 3   // second Triangle
-    };
+
     unsigned int slikaVBO, VAO, EBO;
     glGenVertexArrays(1, &VAO);
     glGenBuffers(1, &slikaVBO);
@@ -411,7 +404,7 @@ int main() {
     glGenBuffers(1, &lightCubeVBO);
 
     glBindBuffer(GL_ARRAY_BUFFER, lightCubeVBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices4), vertices4, GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(cubeVertices), cubeVertices, GL_STATIC_DRAW);
 
     glBindVertexArray(lightCubeVAO);
 
@@ -437,14 +430,14 @@ int main() {
     lightingShader.use();
     lightingShader.setInt("material.diffuse", 0);
     lightingShader.setInt("material.specular",1);
-    //model
-    //Model
+
+    //ModelglEnable(GL_CULL_FACE);
+
     Model vagon1Model(FileSystem::getPath("resources/objects/vagoni/train-cart.obj"));
     Model vagon2Model(FileSystem::getPath("resources/objects/vagoni/train-cart.obj"));
     Model tenkModel(FileSystem::getPath("resources/objects/tenk/german-panzer-ww2-ausf-b.obj"));
 
 
-    //Shader objectShader("soba.vs","soba.fs");
     // render loop
     // -----------
     while (!glfwWindowShouldClose(window)) {
@@ -466,6 +459,9 @@ int main() {
         glm::mat4 model = glm::mat4(1.0f);
         glm::mat4 projection = glm::perspective(glm::radians(programState->camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
         glm::mat4 view = programState->camera.GetViewMatrix();
+
+        glEnable(GL_CULL_FACE);
+        glCullFace(GL_FRONT);
 
         slikaShader.use();
         slikaShader.setMat4("projection", projection);
@@ -493,7 +489,6 @@ int main() {
         glBindTexture(GL_TEXTURE_2D, specularMap);
 
         glBindVertexArray(VAO); // seeing as we only have a single VAO there's no need to bind it every time, but we'll do so to keep things a bit more organized
-        //glDrawArrays(GL_TRIANGLES, 0, 6);
         glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 
         lightingShader.use();
@@ -517,7 +512,6 @@ int main() {
 
         // bind diffuse map
         lightingShader.setMat4("model", model);
-        //lightingShader.setVec3("material.specular", 0.05f, 0.05f, 0.05f);
         lightingShader.setFloat("material.shininess", 64.0f);
         lightingShader.setVec3("light.specular",0.02f,0.02f,0.02f);
         glActiveTexture(GL_TEXTURE0);
@@ -531,8 +525,6 @@ int main() {
         glDrawArrays(GL_TRIANGLES, 0, 24);
 
 
-        //lightingShader.setVec3("material.specular", 0.15f, 0.15f, 0.15f);
-        //lightingShader.setVec3("light.diffuse", 0.5f, 0.5f, 0.5f);
         lightingShader.setVec3("light.specular",0.2f,0.2f,0.2f);
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, diffuseMap3);
@@ -542,8 +534,6 @@ int main() {
         glBindVertexArray(plafonVAO);
         glDrawArrays(GL_TRIANGLES, 0, 6);
 
-        //lightingShader.setVec3("material.specular", 0.7f, 0.7f, 0.7f);
-        //lightingShader.setVec3("light.diffuse", 0.7f, 0.7f, 0.7f);
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, diffuseMap2);
 
@@ -554,6 +544,8 @@ int main() {
         // render the cube
         glBindVertexArray(podVAO);
         glDrawArrays(GL_TRIANGLES, 0, 6);
+
+        glDisable(GL_CULL_FACE);
 
         lightingShader.setVec3("lightSpot.position", programState->camera.Position);
 
@@ -577,7 +569,6 @@ int main() {
         lightingShader.setFloat("material.shininess", 64.0f);
 
 
-        //lightingShader.use();
         lightingShader.setVec3("light.ambient",glm::vec3(1.0f,1.0f,1.0f));
         glm::mat4 modelTenk = glm::mat4(1.0f);
         modelTenk = glm::scale(modelTenk, glm::vec3(1.5f));
@@ -588,7 +579,6 @@ int main() {
 
 
 
-        //lightingShader.use();
         glm::mat4 modelvagon = glm::mat4(1.0f);
         modelvagon = glm::rotate(modelvagon,(float)glfwGetTime(),glm::vec3(0.0f,1.0f,0.0f));
         modelvagon = glm::translate(modelvagon,glm::vec3(8.0f,0.0f,0.0f));
@@ -599,7 +589,6 @@ int main() {
         lightingShader.setMat4("view", view);
         vagon1Model.Draw(lightingShader);
 
-        //lightingShader.use();
         modelvagon = glm::mat4(1.0f);
         modelvagon = glm::rotate(modelvagon,glm::radians(37.0f),glm::vec3(0.0f,1.0f,0.0f));
         modelvagon = glm::rotate(modelvagon,(float)glfwGetTime(),glm::vec3(0.0f,1.0f,0.0f));
@@ -612,17 +601,21 @@ int main() {
         lightingShader.setMat4("view", view);
         vagon1Model.Draw(lightingShader);
 
+        glEnable(GL_CULL_FACE);
+        glCullFace(GL_FRONT);
         // also draw the lamp object
         lightCubeShader.use();
         lightCubeShader.setMat4("projection", projection);
         lightCubeShader.setMat4("view", view);
         model = glm::mat4(1.0f);
-        model = glm::translate(model, lightPos);
+        model = glm::translate(model, glm::vec3(0.0f, 8.0f, 0.0f));
         model = glm::scale(model, glm::vec3(1.0f)); // a smaller cube
         lightCubeShader.setMat4("model", model);
 
         glBindVertexArray(lightCubeVAO);
         glDrawArrays(GL_TRIANGLES, 0, 36);
+
+        glDisable(GL_CULL_FACE);
 
         if (programState->ImGuiEnabled)
             DrawImGui(programState);
@@ -670,7 +663,7 @@ void framebuffer_size_callback(GLFWwindow *window, int width, int height) {
     glViewport(0, 0, width, height);
 }
 
-// glfw: whenever the mouse moves, this callback is called
+// glfw: whenever the mouse moves, tFace culling, Framebuffers)his callback is called
 // -------------------------------------------------------
 void mouse_callback(GLFWwindow *window, double xpos, double ypos) {
     if (firstMouse) {
